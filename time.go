@@ -14,14 +14,15 @@
 package minitrace
 
 import (
+	"time"
 	_ "unsafe"
 )
 
 //go:linkname nanotime runtime.nanotime
 func nanotime() int64
 
-//go:linkname walltime runtime.walltime
-func walltime() (sec int64, nsec int32)
+////go:linkname walltime runtime.walltime
+//func walltime() (sec int64, nsec int32)
 
 // Standard library's `time.Now()` will invoke two syscalls in Linux. One is `CLOCK_REALTIME` and
 // another is `CLOCK_MONOTONIC`. In our case, we'd like to separate these two calls to measure
@@ -36,6 +37,6 @@ func monotimeNs() uint64 {
 // time for performance purpose.
 // `unixtimeNs()` is identical to Linux's `clock_gettime(CLOCK_REALTIME, &ts)`
 func unixtimeNs() uint64 {
-	sec, nsec := walltime()
-	return uint64(sec*1_000_000_000 + int64(nsec))
+	now := time.Now()
+	return uint64(now.UnixNano())
 }
