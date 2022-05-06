@@ -57,6 +57,10 @@ func nextID() uint64 {
 }
 
 func StartRootSpan(ctx context.Context, event string, traceID uint64, parentSpanID uint64, attachment interface{}) (context.Context, TraceHandle) {
+	ctx = context.WithValue(ctx, spanContextBatchKey, &spanContextBatchKeyContent{
+		buf: make([]spanContext, InitSpanLen),
+		idx: 0,
+	})
 	traceCtx := newTraceContext(traceID, attachment)
 	spanCtx := newSpanContext(ctx, traceCtx)
 	spanHandle := newSpanHandle(spanCtx, parentSpanID, event)

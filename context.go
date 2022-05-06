@@ -16,7 +16,22 @@ package minitrace
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
+)
+
+const (
+	InitSpanLen = 16
+)
+
+type spanContextBatchKeyType struct{}
+type spanContextBatchKeyContent struct {
+	buf []spanContext
+	idx uint64
+}
+
+var (
+	spanContextBatchKey = struct{}{}
 )
 
 // A span context embedded into ctx.context
@@ -29,10 +44,22 @@ type spanContext struct {
 }
 
 func newSpanContext(ctx context.Context, tracingCtx *traceContext) *spanContext {
-	return &spanContext{
-		parent:       ctx,
-		traceContext: tracingCtx,
+	var spanCtx *spanContext
+	if i := ctx.Value(spanContextBatchKey); i != nil {
+		b := i.(*spanContextBatchKeyContent)
+		idx := int(atomic.AddUint64(&b.idx, 1) - 1)
+		if idx < len(b.buf) {
+			spanCtx = &b.buf[idx]
+			spanCtx.parent = ctx
+			spanCtx.traceContext = tracingCtx
+		} else {
+			spanCtx = &spanContext{
+				parent:       ctx,
+				traceContext: tracingCtx,
+			}
+		}
 	}
+	return spanCtx
 }
 
 type tracingKey struct{}
@@ -79,6 +106,7 @@ func newTraceContext(traceID uint64, attachment interface{}) *traceContext {
 		createMonoTimeNs: monotimeNs(),
 		attachment:       attachment,
 		collected:        false,
+		collectedSpans:   make([]Span, 0, 8),
 	}
 }
 
