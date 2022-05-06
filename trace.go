@@ -16,6 +16,9 @@ package minitrace
 import (
 	"context"
 	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Trace struct {
@@ -23,9 +26,32 @@ type Trace struct {
 	Spans   []Span
 }
 
+var (
+	rds [20]struct {
+		sync.Mutex
+		*rand.Rand
+	}
+	idx int64 = 0
+)
+
+func init() {
+	seedBase := time.Now().UnixNano()
+	for i := 0; i < 20; i++ {
+		rds[i] = struct {
+			sync.Mutex
+			*rand.Rand
+		}{Rand: rand.New(rand.NewSource(seedBase + int64(i)))}
+	}
+}
+
 // Returns random uint64 ID.
 func nextID() uint64 {
-	return rand.Uint64()
+	i := atomic.AddInt64(&idx, 1) % 20
+	s := rds[int(i)]
+	s.Lock()
+	r := s.Uint64()
+	s.Unlock()
+	return r
 }
 
 func StartRootSpan(ctx context.Context, event string, traceID uint64, parentSpanID uint64, attachment interface{}) (context.Context, TraceHandle) {
