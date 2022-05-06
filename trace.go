@@ -31,7 +31,8 @@ var (
 		sync.Mutex
 		*rand.Rand
 	}
-	idx int64 = 0
+	idx int64  = 0
+	id  uint64 = 0
 )
 
 func init() {
@@ -46,12 +47,13 @@ func init() {
 
 // Returns random uint64 ID.
 func nextID() uint64 {
-	i := atomic.AddInt64(&idx, 1) % 20
-	s := rds[int(i)]
-	s.Lock()
-	r := s.Uint64()
-	s.Unlock()
-	return r
+	//i := atomic.AddInt64(&idx, 1) % 20
+	//s := rds[int(i)]
+	//s.Lock()
+	//r := s.Uint64()
+	//s.Unlock()
+	//return r
+	return atomic.AddUint64(&id, 1)
 }
 
 func StartRootSpan(ctx context.Context, event string, traceID uint64, parentSpanID uint64, attachment interface{}) (context.Context, TraceHandle) {
