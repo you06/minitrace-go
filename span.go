@@ -23,7 +23,7 @@ type Span struct {
 }
 
 func (s *Span) beginWith(parentID uint64, event string) {
-	s.ID = nextID()
+	s.ID = nextID(parentID)
 	s.ParentID = parentID
 
 	// Fill a monotonic time for now. After span is finished, it will replace by a unix time.

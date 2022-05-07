@@ -45,15 +45,18 @@ func init() {
 	}
 }
 
+const (
+	LowBitMask     = 0b1111
+	LowToHighShift = 60
+)
+
+var ids = make([]uint64, 16)
+
 // Returns random uint64 ID.
-func nextID() uint64 {
-	//i := atomic.AddInt64(&idx, 1) % 20
-	//s := rds[int(i)]
-	//s.Lock()
-	//r := s.Uint64()
-	//s.Unlock()
-	//return r
-	return atomic.AddUint64(&id, 1)
+func nextID(shardID uint64) uint64 {
+	shardID = shardID & LowBitMask
+	lower := atomic.AddUint64(&ids[shardID], 1)
+	return (shardID << LowToHighShift) | lower
 }
 
 func StartRootSpan(ctx context.Context, event string, traceID uint64, parentSpanID uint64, attachment interface{}) (context.Context, TraceHandle) {
